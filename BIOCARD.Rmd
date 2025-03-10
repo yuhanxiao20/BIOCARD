@@ -728,6 +728,50 @@ summary(model_sTREM2_low)
 summary(model_YKL40_low)
 ```
 
+```{r}
+# Function to extract desired information from each model
+extract_results <- function(model) {
+  model_summary <- summary(model)
+  
+  estimate_main <- model_summary$coefficients[7, 1]
+  std.error_main <- model_summary$coefficients[7, 2]
+  t_value_main <- model_summary$coefficients[7, 4]
+  p_value_main <- model_summary$coefficients[7, 5]
+  
+  estimate_interaction <- model_summary$coefficients[12, 1]
+  std.error_interaction <- model_summary$coefficients[12, 2]
+  t_value_interaction <- model_summary$coefficients[12, 4]
+  p_value_interaction <- model_summary$coefficients[12, 5]
+  
+  result_main <- c(Estimate = estimate_main, Std.Error = std.error_main, T_value = t_value_main, P_value = p_value_main)
+  result_interaction <- c(Estimate = estimate_interaction, Std.Error = std.error_interaction, T_value = t_value_interaction, P_value = p_value_interaction)
+  
+  return(rbind(result_main, result_interaction))
+}
+
+# Create a list of models
+models <- list(
+  GFAP = model_GFAP_low,
+  NFL = model_NFL_low,
+  PTAU181 = model_PTAU181_low,
+  AB42AB40 = model_AB42AB40_low,
+  sTREM2 = model_sTREM2_low,
+  YKL40 = model_YKL40_low
+)
+
+results <- lapply(models, extract_results)
+results_df <- do.call(rbind, results)
+# Convert the row names (biomarker names) into a column
+results_df <- data.frame(Biomarker = rep(names(models), each = 2), results_df, row.names = NULL)
+results_df$Interaction <- rep(c("Low Intensity", "Low Intensity * Time"), length(models))
+results_df <- as.data.frame(results_df[, c("Biomarker", "Interaction", "Estimate", "Std.Error", "T_value", "P_value")])
+
+kable(results_df, col.names = c("Biomarker", "Variable", "Estimate", "Std.Error", "t value", "P-value"))  %>%
+ kable_styling("striped", full_width = T) %>%
+ column_spec(1, bold = T) %>%
+ collapse_rows(columns = 1, valign = "middle") 
+```
+
 In PTAU181 analysis, low intensity CHAMPS value is a predictor with a significance of 0.05.
 ```{r}
 median_int <- median(data_champs_PTAU181$bl_low_z, na.rm = TRUE)
@@ -772,6 +816,30 @@ summary(model_sTREM2_high)
 summary(model_YKL40_high)
 ```
 
+```{r}
+# Create a list of models
+models <- list(
+  GFAP = model_GFAP_high,
+  NFL = model_NFL_high,
+  PTAU181 = model_PTAU181_high,
+  AB42AB40 = model_AB42AB40_high,
+  sTREM2 = model_sTREM2_high,
+  YKL40 = model_YKL40_high
+)
+
+results <- lapply(models, extract_results)
+results_df <- do.call(rbind, results)
+# Convert the row names (biomarker names) into a column
+results_df <- data.frame(Biomarker = rep(names(models), each = 2), results_df, row.names = NULL)
+results_df$Interaction <- rep(c("High Intensity", "High Intensity * Time"), length(models))
+results_df <- as.data.frame(results_df[, c("Biomarker", "Interaction", "Estimate", "Std.Error", "T_value", "P_value")])
+
+kable(results_df, col.names = c("Biomarker", "Variable", "Estimate", "Std.Error", "t value", "P-value"))  %>%
+ kable_styling("striped", full_width = T) %>%
+ column_spec(1, bold = T) %>%
+ collapse_rows(columns = 1, valign = "middle") 
+```
+
 In NFL analysis, the interaction of high intensity CHAMPS value with time is a predictor with a significance of 0.01.
 ```{r}
 median_int <- median(data_champs_NFL$bl_high_z, na.rm = TRUE)
@@ -814,6 +882,30 @@ summary(model_PTAU181_all)
 summary(model_AB42AB40_all)
 summary(model_sTREM2_all)
 summary(model_YKL40_all)
+```
+
+```{r}
+# Create a list of models
+models <- list(
+  GFAP = model_GFAP_all,
+  NFL = model_NFL_all,
+  PTAU181 = model_PTAU181_all,
+  AB42AB40 = model_AB42AB40_all,
+  sTREM2 = model_sTREM2_all,
+  YKL40 = model_YKL40_all
+)
+
+results <- lapply(models, extract_results)
+results_df <- do.call(rbind, results)
+# Convert the row names (biomarker names) into a column
+results_df <- data.frame(Biomarker = rep(names(models), each = 2), results_df, row.names = NULL)
+results_df$Interaction <- rep(c("All Intensity", "All Intensity * Time"), length(models))
+results_df <- as.data.frame(results_df[, c("Biomarker", "Interaction", "Estimate", "Std.Error", "T_value", "P_value")])
+
+kable(results_df, col.names = c("Biomarker", "Variable", "Estimate", "Std.Error", "t value", "P-value"))  %>%
+ kable_styling("striped", full_width = T) %>%
+ column_spec(1, bold = T) %>%
+ collapse_rows(columns = 1, valign = "middle") 
 ```
 
 In NFL analysis, the interaction of all intensity CHAMPS value with time is a predictor with a significance of 0.01.
@@ -920,4 +1012,28 @@ summary(model_PTAU181_act)
 summary(model_AB42AB40_act)
 summary(model_sTREM2_act)
 summary(model_YKL40_act)
+```
+
+```{r}
+# Create a list of models
+models <- list(
+  GFAP = model_GFAP_act,
+  NFL = model_NFL_act,
+  PTAU181 = model_PTAU181_act,
+  AB42AB40 = model_AB42AB40_act,
+  sTREM2 = model_sTREM2_act,
+  YKL40 = model_YKL40_act
+)
+
+results <- lapply(models, extract_results)
+results_df <- do.call(rbind, results)
+# Convert the row names (biomarker names) into a column
+results_df <- data.frame(Biomarker = rep(names(models), each = 2), results_df, row.names = NULL)
+results_df$Interaction <- rep(c("LTAC10", "LTAC10 * Time"), length(models))
+results_df <- as.data.frame(results_df[, c("Biomarker", "Interaction", "Estimate", "Std.Error", "T_value", "P_value")])
+
+kable(results_df, col.names = c("Biomarker", "Variable", "Estimate", "Std.Error", "t value", "P-value"))  %>%
+ kable_styling("striped", full_width = T) %>%
+ column_spec(1, bold = T) %>%
+ collapse_rows(columns = 1, valign = "middle") 
 ```
