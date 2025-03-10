@@ -1,0 +1,444 @@
+---
+title: "analaysis"
+output: html_document
+---
+
+```{r library, comment=NA, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readxl)
+library(here)
+```
+
+### Data Wrangling  
+
+These are all the datasets we obtained from the collaborators, which are
+
+- BIOCARD_Demographics_2024.08.07_Deidentified.xlsx
+
+- BIOCARD_DiagnosisData_2024.09.08_Deidentified.xlsx
+
+- BIOCARD_Genetics_Data_2023.03.28_Deidentified.xlsx
+
+- BIOCARD_Leisure_Activity_Champs_2023.09.10_other coded_Deidentified.xlsx
+
+- BIOCARD_NTK Blood biomarkers_08.09.24_JHU only.xlsx
+
+- BIOCARD_Vital_Signs_Sensory_2023.04.17_Deidentified.xlsx
+
+- New participants_BIOCARD ApoE Genotypes 2023-2024_Deidentified.xlsx
+
+- actigraphy_data_BIOCARD_8_7_24_from Daniel_Deidentified.xlsx
+
+```{r data load, comment=NA, message=FALSE, warning=FALSE}
+biocard_demographics <- read_xlsx("BIOCARD_Demographics_2024.08.07_Deidentified.xlsx")
+biocard_diagnosis <- read_xlsx("BIOCARD_DiagnosisData_2024.09.08_Deidentified.xlsx")
+biocard_genetics <- read_xlsx("BIOCARD_Genetics_Data_2023.03.28_Deidentified.xlsx")
+biocard_apoe <- read_xlsx("New participants_BIOCARD ApoE Genotypes 2023-2024_Deidentified.xlsx")
+biocard_leisure <- read_xlsx("BIOCARD_Leisure_Activity_Champs_2023.09.10_other coded_Deidentified.xlsx")
+biocard_ntk_blood_biomarker <- read_xlsx("BIOCARD_NTK Blood biomarkers_08.09.24_JHU only.xlsx")
+biocard_vital_signs_sensory <- read_xlsx("BIOCARD_Vital_Signs_Sensory_2023.04.17_Deidentified.xlsx")
+biocard_actigraphy <- read_xlsx("actigraphy_data_BIOCARD_8_7_24_from Daniel_Deidentified.xlsx")
+```
+
+### Data Cleaning
+
+We cleaned each of the data files based on the relevance to our analyses.
+
+#### Demographics
+
+```{r demographic, comment=NA, message=FALSE}
+biocard_demographics_new <- biocard_demographics |>
+    mutate(Sex_F = ifelse(SEX == 2, 1, 0),
+           Race_White = ifelse(RACE == 1, 1, 0)) |>
+    select(SUBJECT_ID, Sex_F, EDUC, Race_White)
+head(biocard_demographics_new)
+```
+
+#### Diagnosis
+
+```{r diagnosis, comment=NA, message=FALSE, warning=FALSE}
+biocard_diagnosis_new <- biocard_diagnosis |>
+    mutate(VISITNO = as.numeric(VISITNO)) |>
+    arrange(SUBJECT_ID, VISITNO) |>
+    group_by(SUBJECT_ID) |>
+    mutate(fup_Dx = ifelse(DIAGNOSIS[n()] %in% c("MCI", "DEMENTIA"), 1, 0)) |> 
+    ungroup() |>
+    select(SUBJECT_ID, VISITNO, AgeAtVisit, DIAGNOSIS, DECAGE, fup_Dx) |>
+    rename(AgeAtVisit_CHAMPS = AgeAtVisit)
+head(biocard_diagnosis_new)
+```
+
+#### NTK Blood Biomarkers
+
+```{r biomarker, comment=NA, message=FALSE, warning=FALSE}
+biocard_ntk_blood_biomarker_new <- biocard_ntk_blood_biomarker |>
+    select(SUBJECT_ID, VISITNO,
+           PTAU181_zscore, AB42AB40_zscore, # AD-specific measures
+           NFL_zscore, YKL40_zscore, sTREM2_zscore, GFAP_zscore, # AD non-specific measures
+           PTAU181_outlier, AB42AB40_outlier, NFL_outlier,# outliers indicator
+           YKL40_outlier, sTREM2_outlier, GFAP_outlier,
+           PTAU181, PTAU181_AB42AB40, NFL, AB42AB40, YKL40, sTREM2, GFAP) |>
+    mutate(VISITNO = as.numeric(VISITNO))
+head(biocard_ntk_blood_biomarker_new)
+```
+
+#### CHAMPS activity questionnaire
+
+```{r champs questionnaire, comment=NA, message=FALSE, warning=FALSE}
+biocard_leisure_new <- biocard_leisure |>
+    mutate(VISITNO = as.numeric(VISITNO),
+           B11141s_CAT_low = ifelse(B11141s_CAT == "Physical-low", B11141a_freq, 0),
+           B11141s_CAT_high = ifelse(B11141s_CAT == "Physical-modhi", B11141a_freq, 0)) |>
+    group_by(SUBJECT_ID, VISITNO) |>
+    mutate(LOW_INT_FREQ = sum(B11110a_freq, B11120a_freq, B11122a_freq, B11127a_freq, 
+              B11128a_freq, B11134a_freq, B11135a_freq, B11139a_freq, B11141s_CAT_low, na.rm = TRUE),
+           HIGH_INT_FREQ = sum(B11107a_freq, B11109a_freq, B11114a_freq, B11115a_freq,
+              B11116a_freq, B11119a_freq, B11121a_freq, B11123a_freq, B11124a_freq,
+              B11125a_freq, B11126a_freq, B11129a_freq, B11130a_freq, B11131a_freq,
+              B11132a_freq, B11133a_freq, B11136a_freq, B11137a_freq, B11138a_freq, 
+              B11140a_freq, B11141s_CAT_high, na.rm = TRUE),
+           ALL_INT_FREQ = LOW_INT_FREQ + HIGH_INT_FREQ) |>
+    select(SUBJECT_ID, VISITNO, LOW_INT_FREQ, HIGH_INT_FREQ, ALL_INT_FREQ)
+head(biocard_leisure_new)
+```
+
+#### Actigraphy
+
+```{r actigraphy, comment=NA, message=FALSE, warning=FALSE}
+biocard_actigraphy_new <- biocard_actigraphy |>
+    mutate(VISITNO = as.numeric(VISITNO)) |>
+    group_by(SUBJECT_ID) |>
+    # generate baseline variable for actigraphy assessment
+    mutate(Age_Act = AgeAtVisit[act_visit == 1][1]) |> 
+    rename("AgeAtVisit_Actigraphy" = "AgeAtVisit") |>
+    select(SUBJECT_ID, VISITNO, Age_Act, AgeAtVisit_Actigraphy, LTAC10)
+head(biocard_actigraphy_new)
+```
+
+#### Genetics
+
+```{r genetics, comment=NA, message=FALSE, warning=FALSE}
+biocard_apoe_1 <- biocard_apoe |>
+    mutate(APOECODE = round(APOECODE/10,2))
+biocard_genetics_new <- rbind(biocard_genetics, biocard_apoe_1) |>
+    mutate(APOE4 = APOECODE,
+           APOE4 = ifelse(APOECODE %in% c(2.2, 2.3, 3.3), 0, APOE4),
+           APOE4 = ifelse(APOECODE %in% c(2.4, 3.4, 4.4), 1, APOE4)) |>
+    select(-APOECODE)
+head(biocard_genetics_new)    
+```
+
+
+#### Vital Signs/Sensory 
+
+```{r sensory, comment=NA, message=FALSE, warning=FALSE}
+biocard_vital_signs_sensory_new <- biocard_vital_signs_sensory |>
+    select(SUBJECT_ID, VISITNO, BMI) |>
+    mutate(VISITNO = as.numeric(VISITNO))
+head(biocard_vital_signs_sensory_new)
+```
+
+### Merge datasets
+
+```{r data merge, comment=NA, message=FALSE, warning=FALSE}
+datafile_list <- list(biocard_diagnosis_new, biocard_demographics_new,
+                      biocard_ntk_blood_biomarker_new, biocard_leisure_new,
+                      biocard_genetics_new, biocard_actigraphy_new,
+                      biocard_vital_signs_sensory_new)
+
+merge_dfs <- function(df1, df2) {
+  common_cols <- intersect(names(df1), names(df2))
+  if ("VISITNO" %in% common_cols) {
+    full_join(df1, df2, by = c("SUBJECT_ID", "VISITNO"))
+  } else {
+    full_join(df1, df2, by = "SUBJECT_ID")
+  }
+}
+
+final_data <- reduce(datafile_list, merge_dfs) # 4527, 29
+dim(final_data)
+```
+
+### Exclusion Criteria
+
+```{r exclusion criteria, comment=NA, message=FALSE, warning=FALSE}
+final_data_1 <- final_data |>
+    # keep only JHU assessments
+    filter(VISITNO > 100) |>
+    # generate baseline variable for CHAMPS assessment
+    group_by(SUBJECT_ID) |>
+    mutate(Age_CHAMPS = AgeAtVisit_CHAMPS[VISITNO == 101][1]) |>
+    ungroup() |>
+    # reorder the columns
+    select(SUBJECT_ID, VISITNO, DIAGNOSIS, AgeAtVisit_CHAMPS, Age_CHAMPS,
+           AgeAtVisit_Actigraphy, Age_Act, everything())
+dim(final_data_1) # 3099, 30
+
+final_data_2 <- final_data_1 |>
+    # participants with MCI or Dementia at their first available CHAMPS measure
+    group_by(SUBJECT_ID) |>
+    mutate(participant_move = any(DIAGNOSIS %in% c("MCI", "DEMENTIA") & AgeAtVisit_CHAMPS == Age_CHAMPS)) |> 
+    ungroup() |> 
+    filter(!participant_move) |>
+    select(-participant_move)
+dim(final_data_2) # 2593, 30
+
+# at least one assessment within 1.5 years of baseline
+final_data_3 <- final_data_2 |>
+    mutate(age_diff = AgeAtVisit_CHAMPS - Age_CHAMPS) |>
+    group_by(SUBJECT_ID) |>
+    mutate(assessments_within_1_5_years = sum(age_diff >= 0 & age_diff <= 1.5, na.rm = TRUE)) |>
+    ungroup() |>
+    filter(assessments_within_1_5_years >= 1) |>
+    select(-c(assessments_within_1_5_years, age_diff))
+dim(final_data_3) # 2593, 30
+
+# find subject id without zscores for 101 but zscores for 102
+final_data_4_no_biomarker <- final_data_3 |>
+    mutate(age_1_5 = Age_CHAMPS + 1.5) |> 
+    filter(AgeAtVisit_CHAMPS <= age_1_5) |>
+    filter(VISITNO %in% c(101, 102)) |>
+    select(SUBJECT_ID, VISITNO, ends_with("zscore")) |>
+    group_by(SUBJECT_ID) |>
+    mutate(all_na_101 = all(is.na(across(ends_with("zscore")))[VISITNO == 101]),
+           all_exist_102 = all(!is.na(across(ends_with("zscore")))[VISITNO == 102])) |>
+    filter(all_na_101 & all_exist_102) |>
+    mutate(n_subject = n()) |>
+    ungroup() |>
+    filter(n_subject > 1) 
+
+subject_no_biomarker_101 <- unique(final_data_4_no_biomarker$SUBJECT_ID)
+subject_no_biomarker_101 # 198 143 108 293 318 232  19
+
+# copy 102 zscores to 101 scores
+for (subject in subject_no_biomarker_101) {
+    idx_101 <- which(final_data_3$SUBJECT_ID == subject & final_data_3$VISITNO == 101)
+    idx_102 <- which(final_data_3$SUBJECT_ID == subject & final_data_3$VISITNO == 102)
+
+    if (length(idx_101) > 0 & length(idx_102) > 0) {
+        final_data_3[idx_101, grepl("zscore$", colnames(final_data_3))] <- 
+            final_data_3[idx_102, grepl("zscore$", colnames(final_data_3))]
+    }
+    
+    if (length(idx_101) > 0 & length(idx_102) > 0) {
+        final_data_3[idx_101, grepl("outlier$", colnames(final_data_3))] <- 
+            final_data_3[idx_102, grepl("outlier$", colnames(final_data_3))]
+    }
+} 
+    
+# remove outlier biomarkers
+biomarkers <- c("PTAU181","AB42AB40","NFL","YKL40","sTREM2","GFAP")
+final_data_4 <- final_data_3 |>
+    filter(across(all_of(paste0(biomarkers, "_outlier")), ~ . != 1, .names = "outlier_{col}"))
+dim(final_data_4) # 1363, 30
+
+# remove visits without any biomarker information
+final_data_5 <- final_data_4 |>
+    filter(!(is.na(PTAU181_zscore) | is.na(AB42AB40_zscore) | is.na(NFL_zscore) |
+       is.na(YKL40_zscore) | is.na(sTREM2_zscore) | is.na(GFAP_zscore)))
+dim(final_data_5) # 1363, 30
+
+length(unique(final_data_5$SUBJECT_ID))
+```
+
+## CHAMPS Analysis
+
+```{r data champs, comment=NA, message=FALSE, warning=FALSE}
+champs_data <- final_data_5
+```
+
+### Descriptive Analysis
+
+```{r descriptive champs, comment=NA, message=FALSE, warning=FALSE}
+length(unique(champs_data$SUBJECT_ID))
+# 209
+
+champs_data |>
+    filter(DIAGNOSIS %in% c("MCI", "DEMENTIA") & fup_Dx == 1) |>
+    nrow()
+# 85
+
+champs_data |>
+    filter(SUBJECT_ID >= 400) |>
+    nrow()
+# 0
+
+mean(champs_data$Age_CHAMPS) # 64.83
+sd(champs_data$Age_CHAMPS) # 8.32
+min(champs_data$Age_CHAMPS) # 28.22
+max(champs_data$Age_CHAMPS) # 92.82
+
+champs_data |>
+    group_by(SUBJECT_ID) |>
+    filter(Sex_F == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 128 (128/209 = 61.2%)
+
+mean(champs_data$EDUC) # 17.44
+sd(champs_data$EDUC) # 2.198
+
+champs_data |>
+    group_by(SUBJECT_ID) |>
+    filter(Race_White == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 208 (208/209 = 99.5%)
+
+champs_data |>
+    group_by(SUBJECT_ID) |>
+    filter(APOE4 == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 65 (65/209 = 31.1%)
+
+follow_up_data <- champs_data |> 
+    group_by(SUBJECT_ID) |>   
+    filter(!is.na(Age_CHAMPS)) |>
+    filter(row_number() == which.max(VISITNO)) |> 
+    mutate(follow_up_time = AgeAtVisit_CHAMPS - Age_CHAMPS) |>
+    select(SUBJECT_ID, VISITNO, Age_CHAMPS, AgeAtVisit_CHAMPS, follow_up_time) |> 
+    ungroup()
+mean(follow_up_data$follow_up_time) # 7.85
+sd(follow_up_data$follow_up_time) # 2.77
+min(follow_up_data$follow_up_time) # 0
+max(follow_up_data$follow_up_time) # 11.72
+
+mean(champs_data$LOW_INT_FREQ, na.rm = T) # 12.29
+sd(champs_data$LOW_INT_FREQ, na.rm = T) # 8.29
+
+mean(champs_data$HIGH_INT_FREQ, na.rm = T) # 9.98
+sd(champs_data$HIGH_INT_FREQ, na.rm = T) # 8.82
+
+mean(champs_data$ALL_INT_FREQ, na.rm = T) # 22.27
+sd(champs_data$ALL_INT_FREQ, na.rm = T) # 13.11
+
+mean(champs_data$BMI, na.rm = T) # 26.28
+sd(champs_data$BMI, na.rm = T) # 4.72
+
+baseline <- champs_data |> 
+    filter(AgeAtVisit_CHAMPS == Age_CHAMPS)
+
+mean(baseline$GFAP, na.rm = T) # 74.597
+sd(baseline$GFAP, na.rm = T) # 34.43
+
+mean(baseline$NFL, na.rm = T) # 2.49
+sd(baseline$NFL, na.rm = T) # 1.25
+
+mean(baseline$PTAU181, na.rm = T) # 0.711
+sd(baseline$PTAU181, na.rm = T) # 0.227
+
+mean(baseline$AB42AB40, na.rm = T) # 0.125
+sd(baseline$AB42AB40, na.rm = T) # 0.0176
+
+mean(baseline$PTAU181_AB42AB40, na.rm = T) # 5.865
+sd(baseline$PTAU181_AB42AB40, na.rm = T) # 2.32
+
+mean(baseline$sTREM2, na.rm = T) # 6711.27
+sd(baseline$sTREM2, na.rm = T) # 2829.39
+
+mean(baseline$YKL40, na.rm = T) # 65891.53
+sd(baseline$YKL40, na.rm = T) # 71101.58
+```
+
+
+## Actigraphy Analysis
+
+```{r data actigraphy, comment=NA, message=FALSE, warning=FALSE }
+actigraphy_data <- final_data_5 |>
+  filter(!is.na(AgeAtVisit_Actigraphy))
+```
+
+### Descriptive
+
+```{r descriptive actigraphy, comment=NA, message=FALSE, warning=FALSE}
+length(unique(actigraphy_data$SUBJECT_ID))
+# 150
+
+actigraphy_data |>
+    filter(DIAGNOSIS %in% c("MCI", "DEMENTIA") & fup_Dx == 1) |>
+    nrow()
+# 22
+
+actigraphy_data |>
+    filter(SUBJECT_ID >= 400) |>
+    nrow()
+# 0
+
+mean(actigraphy_data$Age_Act, na.rm = T) # 70.989
+sd(actigraphy_data$Age_Act, na.rm = T) # 8.026
+min(actigraphy_data$Age_Act, na.rm = T) # 39.329
+max(actigraphy_data$Age_Act, na.rm = T) # 93.25
+
+actigraphy_data |>
+    group_by(SUBJECT_ID) |>
+    filter(Sex_F == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 95 (95/150 = 63.3%)
+
+mean(actigraphy_data$EDUC) # 17.37
+sd(actigraphy_data$EDUC) # 2.161
+
+actigraphy_data |>
+    group_by(SUBJECT_ID) |>
+    filter(Race_White == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 149 (149/150 = 99.3%)
+
+actigraphy_data |>
+    group_by(SUBJECT_ID) |>
+    filter(APOE4 == 1) |>
+    distinct(SUBJECT_ID) |>
+    nrow()
+# 47 (47/150 = 31.3%)
+
+follow_up_data_actigraphy <- actigraphy_data |> 
+    group_by(SUBJECT_ID) |>   
+    filter(!is.na(Age_Act)) |>
+    filter(row_number() == which.max(VISITNO)) |> 
+    mutate(follow_up_time = AgeAtVisit_Actigraphy - Age_Act) |>
+    select(SUBJECT_ID, VISITNO, Age_Act, AgeAtVisit_Actigraphy, follow_up_time) |> 
+    ungroup()
+mean(follow_up_data_actigraphy$follow_up_time, na.rm = T) # 1.1487
+sd(follow_up_data_actigraphy$follow_up_time, na.rm = T) # 1.098
+min(follow_up_data_actigraphy$follow_up_time, na.rm = T) # 0
+max(follow_up_data_actigraphy$follow_up_time, na.rm = T) # 3.428
+
+mean(actigraphy_data$LOW_INT_FREQ, na.rm = T) # 12.818
+sd(actigraphy_data$LOW_INT_FREQ, na.rm = T) # 7.844
+
+mean(actigraphy_data$HIGH_INT_FREQ, na.rm = T) # 10.138
+sd(actigraphy_data$HIGH_INT_FREQ, na.rm = T) # 8.335
+
+mean(actigraphy_data$ALL_INT_FREQ, na.rm = T) # 22.96
+sd(actigraphy_data$ALL_INT_FREQ, na.rm = T) # 12.46
+
+mean(actigraphy_data$BMI, na.rm = T) # 26.22
+sd(actigraphy_data$BMI, na.rm = T) # 3.63
+
+baseline <- actigraphy_data |> 
+    filter(AgeAtVisit_Actigraphy == Age_Act)
+
+mean(baseline$GFAP, na.rm = T) # 88.2957
+sd(baseline$GFAP, na.rm = T) # 40.73335
+
+mean(baseline$NFL, na.rm = T) # 2.980845
+sd(baseline$NFL, na.rm = T) # 1.349039
+
+mean(baseline$PTAU181, na.rm = T) # 0.8435352
+sd(baseline$PTAU181, na.rm = T) # 0.3064263
+
+mean(baseline$AB42AB40, na.rm = T) # 0.1277212
+sd(baseline$AB42AB40, na.rm = T) # 0.01819899
+
+mean(baseline$PTAU181_AB42AB40, na.rm = T) # 6.84814
+sd(baseline$PTAU181_AB42AB40, na.rm = T) # 2.999189
+
+mean(baseline$sTREM2, na.rm = T) # 7716.972
+sd(baseline$sTREM2, na.rm = T) # 3151.575
+
+mean(baseline$YKL40, na.rm = T) # 76638.52
+sd(baseline$YKL40, na.rm = T) # 70955.52
+```
