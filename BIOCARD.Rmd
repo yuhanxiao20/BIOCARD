@@ -689,6 +689,25 @@ data_champs_YKL40 <- data_champs_model %>%
   select(-c(YKL40_outlier))
 ```
 
+### Model Specification
+
+The linear mixed-effects model used in this analysis is specified as follows:
+
+$$
+Y_{ij} = \beta_0 + \beta_1 \text{time}_{ij} + \beta_2 \text{Age_CHAMPS}_i + \beta_3 \text{Sex_F}_i + \beta_4 \text{APOE4}_i + \beta_5 \text{BMI}_i + \beta_6 \text{CHAMPS}_i
++ \\ \beta_7 (\text{time}_{ij} \times \text{Age_CHAMPS}_i) + \beta_8 (\text{time}_{ij} \times \text{Sex_F}_i) + \beta_9 (\text{time}_{ij} \times \text{APOE4}_i) + \beta_{10} (\text{time}_{ij} \times \text{BMI}_i) + \beta_{11} (\text{time}_{ij} \times \text{CHAMPS}_i) \\
++ u_{0i} + u_{1i} \text{time}_{ij} + \epsilon_{ij}
+$$
+
+Where:
+
+- $Y_{ij}$ is the biomarker outcome for participant $i$ at time $j$. 
+- $\beta_0$ is the fixed intercept. 
+- $\beta_1, \dots, \beta_{11}$ are the fixed effect coefficients. 
+- $u_{0i} \sim N(0, \sigma^2_u)$ is the random intercept for subject $i$. 
+- $u_{1i} \sim N(0, \sigma^2_v)$ is the random slope for time for subject $i$. 
+- $\epsilon_{ij} \sim N(0, \sigma^2)$ is the residual error.
+
 Low Intensity
 ```{r}
 # Low intensity

@@ -369,6 +369,8 @@ Models</a>
 <ul>
 <li><a href="#champs-analyses-1" id="toc-champs-analyses-1">CHAMPS
 Analyses</a></li>
+<li><a href="#model-specification" id="toc-model-specification">Model
+Specification</a></li>
 <li><a href="#actigraphy-analyses-1" id="toc-actigraphy-analyses-1">Actigraphy Analyses</a></li>
 </ul></li>
 </ul>
@@ -728,6 +730,36 @@ actigraphy and associated baseline blood biomarker measure</td>
 <h2>Regression Models</h2>
 <div id="champs-analyses-1" class="section level3">
 <h3>CHAMPS Analyses</h3>
+</div>
+<div id="model-specification" class="section level3">
+<h3>Model Specification</h3>
+<p>The linear mixed-effects model used in this analysis is specified as
+follows:</p>
+<p><span class="math display">\[
+Y_{ij} = \beta_0 + \beta_1 \text{time}_{ij} + \beta_2
+\text{Age_CHAMPS}_i + \beta_3 \text{Sex_F}_i + \beta_4 \text{APOE4}_i +
+\beta_5 \text{BMI}_i + \beta_6 \text{CHAMPS}_i
++ \\ \beta_7 (\text{time}_{ij} \times \text{Age_CHAMPS}_i) + \beta_8
+(\text{time}_{ij} \times \text{Sex_F}_i) + \beta_9 (\text{time}_{ij}
+\times \text{APOE4}_i) + \beta_{10} (\text{time}_{ij} \times
+\text{BMI}_i) + \beta_{11} (\text{time}_{ij} \times \text{CHAMPS}_i) \\
++ u_{0i} + u_{1i} \text{time}_{ij} + \epsilon_{ij}
+\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(Y_{ij}\)</span> is the biomarker outcome
+for participant <span class="math inline">\(i\)</span> at time <span class="math inline">\(j\)</span>.</li>
+<li><span class="math inline">\(\beta_0\)</span> is the fixed
+intercept.</li>
+<li><span class="math inline">\(\beta_1, \dots, \beta_{11}\)</span> are
+the fixed effect coefficients.</li>
+<li><span class="math inline">\(u_{0i} \sim N(0, \sigma^2_u)\)</span> is
+the random intercept for subject <span class="math inline">\(i\)</span>.</li>
+<li><span class="math inline">\(u_{1i} \sim N(0, \sigma^2_v)\)</span> is
+the random slope for time for subject <span class="math inline">\(i\)</span>.</li>
+<li><span class="math inline">\(\epsilon_{ij} \sim N(0,
+\sigma^2)\)</span> is the residual error.</li>
+</ul>
 <p>Low Intensity</p>
 <pre><code>## Linear mixed model fit by REML. t-tests use Satterthwaite&#39;s method [
 ## lmerModLmerTest]
