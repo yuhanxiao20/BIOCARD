@@ -754,7 +754,7 @@ summary(model_YKL40_high)
 ```
 
 In NFL analysis, the interaction of high intensity CHAMPS value with time is a predictor with a significance of 0.01.
-```{r include = F}
+```{r}
 median_int <- median(data_champs_NFL$bl_high_z, na.rm = TRUE)
 
 data_champs_NFL$int_group <- ifelse(data_champs_NFL$bl_high_z > median_int, "Above Median", "Below Median")
